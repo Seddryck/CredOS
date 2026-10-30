@@ -3,7 +3,7 @@
 ## Repository workflows
 
 Read matching workflows under `.github/skills/` before changing the build or
-project structure. CredOS is an initial .NET scaffold; do not infer application
+project structure. CredOS is a native credential library; do not infer application
 features from Packata or copy its product-specific assets and publishing jobs.
 
 ## Branches and worktrees
@@ -21,7 +21,8 @@ Do not use Codex-managed worktrees under `C:\Users\seddr\.codex\worktrees`.
 
 Run focused tests first. Avoid expensive full suites unless requested or clearly
 necessary. Report exactly which tests and build/package checks ran and which did
-not. No test project exists in the initial scaffold.
+not. Contract tests are in `src/CredOS.Core.Testing`; native tests are opt-in.
+Use the isolated Linux/macOS scripts described in README.md for those stores.
 
 ## Issues and pull requests
 

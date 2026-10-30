@@ -16,8 +16,8 @@ lives under `src/CredOS.<Component>/`, with tests beside it in
 
 Run focused tests first, followed by the relevant build. Report the exact commands
 run and identify checks not run. Avoid full test suites unless requested or
-necessary. The initial scaffold has no executable tests; validate it with the
-restore, build, and pack commands in the README.
+necessary. Run contract tests before native tests. Follow the README for native
+test isolation and the restore, build, and pack commands.
 
 Submit pull requests against `main` with a Conventional Commit-style title, a
 description of the behavior changed, and validation results. Link an associated

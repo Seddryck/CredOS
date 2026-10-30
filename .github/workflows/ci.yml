@@ -1,4 +1,4 @@
-name: CI
+name: Build, package, and publish
 
 on:
   push:
@@ -11,12 +11,83 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  DOTNET_NO_WORKLOAD_UPDATE_NOTIFICATION: '1'
 
 jobs:
+  calculate-version:
+    name: Version · calculate and validate
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.gitversion.outputs.semVer }}
+      patch: ${{ steps.gitversion.outputs.patch }}
+    steps:
+      - name: Check out repository with full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+        with:
+          versionSpec: 6.6.0
+      - name: Calculate version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+      - name: Validate version
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.gitversion.outputs.semVer }}
+        run: |
+          if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "GitVersion produced invalid SemVer '$env:RELEASE_VERSION'."
+          }
+  test:
+    name: Test native stores (${{ matrix.os }})
+    needs: calculate-version
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up .NET SDK and runtimes
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+      - name: Restore
+        run: dotnet restore CredOS.slnx
+      - name: Build all frameworks with the calculated version
+        run: dotnet build CredOS.slnx --configuration Release --no-restore -p:Version=${{ needs.calculate-version.outputs.semver }}
+      - name: Run contract tests on every framework
+        run: dotnet test src/CredOS.Core.Testing --configuration Release --no-build --no-restore --filter "TestCategory!=Native&TestCategory!=IsolatedLinux"
+      - name: Run native Windows tests on every framework
+        if: runner.os == 'Windows'
+        env:
+          CREDOS_TEST_NATIVE: '1'
+        run: dotnet test src/CredOS.Core.Testing --configuration Release --no-build --no-restore --filter "TestCategory=Native"
+      - name: Run native macOS tests in a temporary keychain
+        if: runner.os == 'macOS'
+        shell: bash
+        run: bash build/test-macos.sh
+      - name: Run native Linux tests in a private Secret Service session
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends dbus gnome-keyring libsecret-1-0
+          bash build/test-linux.sh
   build-package:
     name: Build all frameworks and validate package
+    needs: [calculate-version, test]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -27,27 +98,141 @@ jobs:
           dotnet-version: 10.0.x
       - name: Restore
         run: dotnet restore CredOS.slnx
-      - name: Build
-        run: dotnet build CredOS.slnx --configuration Release --no-restore
       - name: Pack
-        run: dotnet pack CredOS.slnx --configuration Release --no-build --output .artifacts/nuget
-      - name: Validate package contents
+        run: dotnet pack src/CredOS.Core/CredOS.Core.csproj --configuration Release --no-restore --include-symbols --output .artifacts/nuget -p:Version=${{ needs.calculate-version.outputs.semver }}
+      - name: Validate package contents and release guards
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $packages = @(Get-ChildItem .artifacts/nuget -Filter *.nupkg)
-          if ($packages.Count -ne 1) { throw 'Expected one CredOS.Core package.' }
-          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
-          try {
-            $entries = @($archive.Entries.FullName)
-            foreach ($entry in @('README.md', 'CredOS.Core.nuspec', 'lib/net8.0/CredOS.Core.dll', 'lib/net9.0/CredOS.Core.dll', 'lib/net10.0/CredOS.Core.dll')) {
-              if ($entries -notcontains $entry) { throw "Package is missing $entry" }
-            }
-          }
-          finally { $archive.Dispose() }
-      - name: Upload local package
+        run: >-
+          ./.github/scripts/Test-ReleasePipeline.ps1
+          -Version '${{ needs.calculate-version.outputs.semver }}'
+          -Commit '${{ github.sha }}'
+          -NuGetDirectory .artifacts/nuget
+      - name: Upload validated packages
         uses: actions/upload-artifact@v7
         with:
-          name: credos-nuget
-          path: .artifacts/nuget/*.nupkg
+          name: nuget-${{ needs.calculate-version.outputs.semver }}
+          path: .artifacts/nuget
           if-no-files-found: error
+
+  verify-release-identity:
+    name: Release identity · revalidate version and reserve tag
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [calculate-version, build-package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tested commit with full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Refresh remote tags
+        run: git fetch origin --force --tags
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+        with:
+          versionSpec: 6.6.0
+      - name: Recalculate version after artifact validation
+        id: release-version
+        uses: gittools/actions/gitversion/execute@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+      - name: Verify tested commit and release version
+        shell: pwsh
+        env:
+          TESTED_COMMIT: ${{ github.sha }}
+          PACKAGED_VERSION: ${{ needs.calculate-version.outputs.semver }}
+          RELEASE_VERSION: ${{ steps.release-version.outputs.semVer }}
+        run: |
+          $testedCommit = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $testedCommit -ne $env:TESTED_COMMIT) {
+            throw 'The checkout does not identify the tested commit.'
+          }
+          if ($env:RELEASE_VERSION -ne $env:PACKAGED_VERSION -or $env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+$') {
+            throw 'The release version must be stable and match the validated package.'
+          }
+      - name: Reserve release tag for patch-zero releases
+        if: needs.calculate-version.outputs.patch == '0'
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          ./.github/scripts/Reserve-ReleaseTag.ps1 -Version '${{ needs.calculate-version.outputs.semver }}' -Commit '${{ github.sha }}'
+
+  publish-nuget:
+    name: Publishing · push package to NuGet
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [calculate-version, build-package, verify-release-identity]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out artifact validator
+        uses: actions/checkout@v7
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Download validated packages
+        uses: actions/download-artifact@v7
+        with:
+          name: nuget-${{ needs.calculate-version.outputs.semver }}
+          path: .artifacts/nuget
+      - name: Revalidate packages before publishing
+        shell: pwsh
+        run: >-
+          ./.github/scripts/Validate-ReleaseArtifacts.ps1
+          -Version '${{ needs.calculate-version.outputs.semver }}'
+          -Commit '${{ github.sha }}'
+          -NuGetDirectory .artifacts/nuget
+      - name: Exchange GitHub identity for a NuGet API key
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: Seddryck
+      - name: Publish the validated package and symbols
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push '.artifacts/nuget/CredOS.${{ needs.calculate-version.outputs.semver }}.nupkg' --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if ($LASTEXITCODE -ne 0) { throw 'NuGet publication failed.' }
+
+  publish-github-release:
+    name: Publishing · create GitHub release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.calculate-version.outputs.patch == '0'
+    needs: [calculate-version, build-package, verify-release-identity, publish-nuget]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Check out artifact validator
+        uses: actions/checkout@v7
+      - name: Download validated packages
+        uses: actions/download-artifact@v7
+        with:
+          name: nuget-${{ needs.calculate-version.outputs.semver }}
+          path: .artifacts/nuget
+      - name: Revalidate release assets
+        shell: pwsh
+        run: >-
+          ./.github/scripts/Validate-ReleaseArtifacts.ps1
+          -Version '${{ needs.calculate-version.outputs.semver }}'
+          -Commit '${{ github.sha }}'
+          -NuGetDirectory .artifacts/nuget
+      - name: Create or update GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.calculate-version.outputs.semver }}
+        run: |
+          $tag = "v$env:RELEASE_VERSION"
+          $assets = @(Get-ChildItem .artifacts/nuget -File | Select-Object -ExpandProperty FullName)
+          if (gh release view $tag 2>$null) {
+            gh release upload $tag @assets --clobber
+          }
+          else {
+            gh release create $tag @assets --title "CredOS $env:RELEASE_VERSION" --generate-notes --verify-tag
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed.' }

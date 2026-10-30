@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CredOS.Core/CredOS.Core.csproj" />
+    <Project Path="src/CredOS.Core.Testing/CredOS.Core.Testing.csproj" />
   </Folder>
 </Solution>

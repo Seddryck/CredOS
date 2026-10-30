@@ -20,10 +20,10 @@ assembly by default. Set explicit `InternalsVisibleTo` or
 Projects ending in `Testing` are excluded from NuGet packing. Mark other
 non-library projects non-packable explicitly.
 
-CredOS currently has no application behavior or test framework. Add tests for
-new observable behavior and select dependencies based on the actual need; avoid
-creating placeholder tests for empty scaffolding. Update CI when introducing the
-first test project so tests execute and every required runtime is installed.
+CredOS uses NUnit in `CredOS.Core.Testing`. Add tests for new observable behavior.
+Native tests are opt-in and use random fixture-owned entries. Use the private
+Linux session and temporary macOS keychain scripts for native validation.
+Keep CI tests and installed runtimes aligned with the supported frameworks.
 
 Run focused tests first, then build affected frameworks. If package structure or
 metadata changes, pack and inspect the resulting archive. Update the README when
