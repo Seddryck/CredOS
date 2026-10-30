@@ -69,6 +69,7 @@ public class NativeCredentialStoreTests
             Assert.Throws<CredentialAlreadyExistsException>(() => store.Add("entry", new("second", "")));
             store.Add("entry", new("second", ""), replace: true);
             Assert.That(store.Read("entry").Username, Is.EqualTo("second"));
+            Assert.That(store.Read("entry").Password.Length, Is.Zero);
             await store.AddAsync("entry", new("third", secret), replace: true);
             Assert.That(store.Read("entry").Password == secret, Is.True, "Async write/sync read failed.");
             store.Remove("entry");
@@ -76,6 +77,32 @@ public class NativeCredentialStoreTests
             Assert.That(await store.ExistsAsync("entry"), Is.False);
         }
         finally { store.Remove("entry"); }
+    }
+
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task EmptyReplacementClearsPreviousPassword(bool synchronous, bool changeUsername)
+    {
+        var store = new CredentialStore("credos-test-" + Guid.NewGuid().ToString("N"));
+        var secret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
+        var username = changeUsername ? "second" : "first";
+        try
+        {
+            await store.AddAsync("entry", new("first", secret));
+            if (synchronous) store.Add("entry", new(username, ""), replace: true);
+            else await store.AddAsync("entry", new(username, ""), replace: true);
+            var empty = await store.ReadAsync("entry");
+            Assert.That(empty.Username, Is.EqualTo(username));
+            Assert.That(empty.Password.Length, Is.Zero, "Empty replacement retained password data.");
+            // Repeated empty writes and a later nonempty replacement must also round-trip.
+            store.Add("entry", new(username, ""), replace: true);
+            Assert.That(store.Read("entry").Password.Length, Is.Zero);
+            await store.AddAsync("entry", new(username, secret), replace: true);
+            Assert.That(store.Read("entry").Password == secret, Is.True, "Nonempty replacement round trip failed.");
+        }
+        finally { await store.RemoveAsync("entry"); }
     }
 
     [Test]

@@ -61,7 +61,10 @@ internal sealed class MacCredentialStore(string applicationName) : INativeCreden
         var bytes = Encoding.UTF8.GetBytes(storedPassword);
         try
         {
-            var data = CFDataCreate(IntPtr.Zero, bytes, bytes.Length);
+            // Legacy Keychain updates treat a NULL data pointer as "leave the password unchanged".
+            // Empty immutable CFData can have that pointer; reserve capacity in mutable CFData
+            // so an empty password still has a non-NULL backing buffer and a zero logical length.
+            var data = bytes.Length == 0 ? CFDataCreateMutable(IntPtr.Zero, 1) : CFDataCreate(IntPtr.Zero, bytes, bytes.Length);
             if (data == IntPtr.Zero) throw new CredentialStoreUnavailableException();
             try { values.Set(ValueDataKey, data); }
             finally { CFRelease(data); }
@@ -132,6 +135,7 @@ internal sealed class MacCredentialStore(string applicationName) : INativeCreden
     [DllImport(CoreFoundation)] private static extern nint CFStringGetMaximumSizeForEncoding(nint length, uint encoding);
     [DllImport(CoreFoundation)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CFStringGetCString(IntPtr text, byte[] buffer, nint size, uint encoding);
     [DllImport(CoreFoundation)] private static extern IntPtr CFDataCreate(IntPtr allocator, byte[] bytes, nint length);
+    [DllImport(CoreFoundation)] private static extern IntPtr CFDataCreateMutable(IntPtr allocator, nint capacity);
     [DllImport(CoreFoundation)] private static extern nint CFDataGetLength(IntPtr data);
     [DllImport(CoreFoundation)] private static extern IntPtr CFDataGetBytePtr(IntPtr data);
     [DllImport(CoreFoundation)] private static extern void CFRelease(IntPtr value);
