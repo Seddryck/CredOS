@@ -1,5 +1,19 @@
 # API validation — 2026-10-30
 
+## Logo and package icon validation
+
+The supplied full logo is stored at `assets/credos-logo.png` and referenced by the
+README using a raw GitHub URL for NuGet rendering. A symbol-only variant is stored
+at `assets/credos-icon.png` (128×128 PNG, 22,064 bytes). Both images were visually
+inspected and embedded in the package. The README image URL uses `main`, where it
+will become available when the asset changes are merged.
+
+The all-framework package/symbol build and **15 release-pipeline checks** passed
+using `.artifacts/logo-package` as the output directory. The checks verify icon
+presence, PNG dimensions, size, nuspec reference, and rejection of a missing icon.
+Workflow lint and whitespace checks passed. Runtime/native tests were not rerun
+for these image and packaging-only changes.
+
 ## NuGet package rename validation
 
 The explicit package ID is now `CredOS`; the assembly remains `CredOS.Core`.

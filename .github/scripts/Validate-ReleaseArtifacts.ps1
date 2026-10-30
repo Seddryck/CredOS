@@ -43,9 +43,23 @@ foreach ($package in @($packages[0], $symbols[0])) {
         }
         if ($package.Extension -eq '.nupkg') {
             if ($identity.license.InnerText -ne 'Apache-2.0') { throw 'Missing Apache-2.0 license metadata.' }
-            foreach ($entry in @('README.md', 'docs/api.md', 'docs/releases.md')) {
+            foreach ($entry in @('README.md', 'docs/api.md', 'docs/releases.md', 'assets/credos-logo.png', 'assets/credos-icon.png')) {
                 if ($entries -cnotcontains $entry) { throw "Package is missing $entry." }
             }
+            if ($identity.icon -cne 'assets/credos-icon.png') { throw 'Package metadata does not reference the symbol-only icon.' }
+            $icon = $archive.GetEntry('assets/credos-icon.png')
+            if ($icon.Length -gt 1MB) { throw 'Package icon exceeds the NuGet size limit.' }
+            $stream = $icon.Open()
+            try {
+                $header = [byte[]]::new(24)
+                $stream.ReadExactly($header)
+                if ([Convert]::ToHexString($header[0..7]) -ne '89504E470D0A1A0A' -or
+                    [Convert]::ToHexString($header[12..15]) -ne '49484452' -or
+                    [Convert]::ToHexString($header[16..23]) -ne '0000008000000080') {
+                    throw 'Package icon must be a 128x128 PNG.'
+                }
+            }
+            finally { $stream.Dispose() }
             foreach ($framework in $frameworks) {
                 foreach ($extension in @('dll', 'xml')) {
                     if ($entries -cnotcontains "lib/$framework/$assemblyName.$extension") {

@@ -7,6 +7,9 @@ portable symbols for all three frameworks. There are no executable distributions
 or generated build prerequisites.
 The project and assembly remain named `CredOS.Core`; the explicit package ID is `CredOS`.
 Artifacts are named `CredOS.<version>.nupkg` and `CredOS.<version>.snupkg`.
+The package embeds the full README logo and a 128×128 symbol-only PNG icon.
+`PackageIcon` references `assets/credos-icon.png`; CI checks its presence, dimensions,
+size, and metadata reference.
 
 ## Version calculation
 

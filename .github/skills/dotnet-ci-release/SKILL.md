@@ -14,7 +14,8 @@ The initial deliverable is one portable managed library, `CredOS.Core`, targetin
 package with ID `CredOS` and a matching symbol package. The assembly remains
 `CredOS.Core`. NuGet publication and patch-zero GitHub
 releases are configured in `ci.yml`; see `docs/releases.md`. No executable, RID
-distribution, generated icon, or installer is established. Do not introduce Packata's
+distribution or installer is established. The package embeds its logo and icon
+from `assets/`; preserve their metadata and package validation. Do not introduce Packata's
 CLI, VS Code, schema, website, or release matrices without corresponding CredOS
 deliverables.
 

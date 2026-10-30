@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>CredOS</PackageId>
+    <PackageIcon>assets/credos-icon.png</PackageIcon>
     <Description>Application-scoped username/password storage using Windows Credential Manager, macOS Keychain, and Linux Secret Service.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>

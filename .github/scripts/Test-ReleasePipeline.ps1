@@ -58,6 +58,10 @@ $noReadme = Copy-Packages 'missing-readme'
 Remove-ArchiveEntry (Join-Path $noReadme "CredOS.$Version.nupkg") 'README.md'
 Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $noReadme } 'Validator accepted missing README documentation.'
 
+$noIcon = Copy-Packages 'missing-icon'
+Remove-ArchiveEntry (Join-Path $noIcon "CredOS.$Version.nupkg") 'assets/credos-icon.png'
+Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $noIcon } 'Validator accepted a missing package icon.'
+
 foreach ($mismatch in @(
     @{ Property = 'version'; Value = '999.0.0' },
     @{ Property = 'id'; Value = 'CredOS.Core' }

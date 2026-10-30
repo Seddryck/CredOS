@@ -32,5 +32,6 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
     <None Include="$(MSBuildThisFileDirectory)docs/api.md" Pack="true" PackagePath="docs/" />
     <None Include="$(MSBuildThisFileDirectory)docs/releases.md" Pack="true" PackagePath="docs/" />
+    <None Include="$(MSBuildThisFileDirectory)assets/*.png" Pack="true" PackagePath="assets/" />
   </ItemGroup>
 </Project>

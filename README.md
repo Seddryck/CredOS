@@ -1,5 +1,9 @@
 # CredOS
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Seddryck/CredOS/main/assets/credos-logo.png" alt="CredOS logo" width="420" />
+</p>
+
 CredOS stores application-scoped username/password pairs in the current user's
 native credential store. The `CredOS` NuGet package targets .NET 8, .NET 9, and .NET 10 and has
 no CLI, configuration, or dependency-injection dependency.

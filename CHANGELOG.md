@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add the CredOS logo to the README and a symbol-only NuGet package icon.
+
 - Publish the library under the NuGet package ID `CredOS`, with matching CI validation and release artifacts.
 
 - Calculate CI package versions with GitVersion and adopt the Packata-style NuGet and patch-zero GitHub release process.
