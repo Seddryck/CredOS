@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Core library for CredOS.</Description>
+  </PropertyGroup>
+</Project>

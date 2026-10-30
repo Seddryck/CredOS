@@ -1,0 +1,34 @@
+<Project>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <LangVersion>14.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DebugType>portable</DebugType>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <IsPackable>true</IsPackable>
+    <IsPackable Condition="$(MSBuildProjectName.EndsWith('Testing'))">false</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>0.0.0</Version>
+    <Authors>Cédric L. Charlier</Authors>
+    <Owners>Seddryck</Owners>
+    <Company>nbiguity</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Seddryck/CredOS</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Seddryck/CredOS</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <RequireLicenseAcceptance>false</RequireLicenseAcceptance>
+    <SymbolPackageFormat Condition="'$(DebugType)' != 'embedded'">snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="2.0.5" PrivateAssets="all" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

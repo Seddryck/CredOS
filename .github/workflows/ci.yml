@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-package:
+    name: Build all frameworks and validate package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore CredOS.slnx
+      - name: Build
+        run: dotnet build CredOS.slnx --configuration Release --no-restore
+      - name: Pack
+        run: dotnet pack CredOS.slnx --configuration Release --no-build --output .artifacts/nuget
+      - name: Validate package contents
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packages = @(Get-ChildItem .artifacts/nuget -Filter *.nupkg)
+          if ($packages.Count -ne 1) { throw 'Expected one CredOS.Core package.' }
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
+          try {
+            $entries = @($archive.Entries.FullName)
+            foreach ($entry in @('README.md', 'CredOS.Core.nuspec', 'lib/net8.0/CredOS.Core.dll', 'lib/net9.0/CredOS.Core.dll', 'lib/net10.0/CredOS.Core.dll')) {
+              if ($entries -notcontains $entry) { throw "Package is missing $entry" }
+            }
+          }
+          finally { $archive.Dispose() }
+      - name: Upload local package
+        uses: actions/upload-artifact@v7
+        with:
+          name: credos-nuget
+          path: .artifacts/nuget/*.nupkg
+          if-no-files-found: error
