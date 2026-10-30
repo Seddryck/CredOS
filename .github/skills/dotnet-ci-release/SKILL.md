@@ -11,22 +11,23 @@ Adapted from Packata's delivery skill. Inspect `Directory.Build.props`,
 
 The initial deliverable is one portable managed library, `CredOS.Core`, targeting
 `net8.0`, `net9.0`, and `net10.0`. Compile all three and pack them into one NuGet
-package. No executable, RID distribution, native dependency, generated icon,
-installer, or publishing destination is established. Do not introduce Packata's
+package with a matching symbol package. NuGet publication and patch-zero GitHub
+releases are configured in `ci.yml`; see `docs/releases.md`. No executable, RID
+distribution, generated icon, or installer is established. Do not introduce Packata's
 CLI, VS Code, schema, website, or release matrices without corresponding CredOS
 deliverables.
 
-CI currently restores, builds, packs, and checks package contents on Linux.
-There are no test projects yet. When tests are added, run relevant tests on every
-supported framework where behavior can differ; install the corresponding
-runtimes and reuse built outputs. Add OS runners when implementation or dependency
-evidence justifies them. A portable library does not need a distribution RID
-matrix.
+CI restores, builds, packs, and checks package contents on Linux. Contract and
+native lifecycle tests run on Windows, macOS, and Linux on every target framework.
+Keep corresponding runtimes installed and reuse built outputs. Linux store tests
+use a private D-Bus session; macOS uses a temporary keychain. Preserve that isolation.
+A portable library does not need a distribution RID matrix.
 
 Before proposing release automation, state the evidence and decision for target
 frameworks, test operating systems, package identities, versions, generated
-inputs, release triggers, and publishing destinations. `GitVersion.yml` provides
-future version rules; current CI uses the local development version `0.0.0`.
+inputs, release triggers, and publishing destinations. CI calculates one version
+with GitVersion 6.6.0 and `GitVersion.yml`. Keep the local tool manifest aligned.
+Local builds without a version override use the development version `0.0.0`.
 
 For an authorized release workflow, calculate one version from full Git history,
 build and validate immutable packages, then publish those same packages. Validate

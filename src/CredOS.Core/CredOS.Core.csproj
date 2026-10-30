@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Core library for CredOS.</Description>
+    <Description>Application-scoped username/password storage using Windows Credential Manager, macOS Keychain, and Linux Secret Service.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 </Project>
