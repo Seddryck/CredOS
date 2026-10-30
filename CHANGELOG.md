@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Publish the library under the NuGet package ID `CredOS`, with matching CI validation and release artifacts.
+
 - Calculate CI package versions with GitVersion and adopt the Packata-style NuGet and patch-zero GitHub release process.
 
 - Implement Windows Credential Manager, macOS Keychain, and Linux libsecret stores in `CredOS.Core`.

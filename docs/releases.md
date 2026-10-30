@@ -1,10 +1,12 @@
 # Versioning and releases
 
 CredOS follows Packata's GitVersion configuration and release cadence. The one
-deliverable is `CredOS.Core`, containing `net8.0`, `net9.0`, and `net10.0` assemblies
+deliverable is the `CredOS` NuGet package, containing `net8.0`, `net9.0`, and `net10.0` assemblies
 and XML API documentation. Each release also includes a matching `.snupkg` with
 portable symbols for all three frameworks. There are no executable distributions
 or generated build prerequisites.
+The project and assembly remain named `CredOS.Core`; the explicit package ID is `CredOS`.
+Artifacts are named `CredOS.<version>.nupkg` and `CredOS.<version>.snupkg`.
 
 ## Version calculation
 
@@ -56,7 +58,7 @@ automatically cancelled; obsolete PR runs can be cancelled.
   any desired approval or branch rules. Publication jobs use this environment.
 - Configure a NuGet trusted publishing policy for user **`Seddryck`**, owner
   **`Seddryck`**, repository **`CredOS`**, workflow **`ci.yml`**, environment **`release`**,
-  covering **`CredOS.Core`**. Package ownership/name availability must allow its first publication.
+  covering **`CredOS`**. Package ownership/name availability must allow its first publication.
 - Permit the workflow to create tags and GitHub releases. Write permissions are
   limited to the tag and GitHub-release jobs; only NuGet publication requests an OIDC token.
 

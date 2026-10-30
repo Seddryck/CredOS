@@ -1,8 +1,12 @@
 # CredOS
 
 CredOS stores application-scoped username/password pairs in the current user's
-native credential store. `CredOS.Core` targets .NET 8, .NET 9, and .NET 10 and has
+native credential store. The `CredOS` NuGet package targets .NET 8, .NET 9, and .NET 10 and has
 no CLI, configuration, or dependency-injection dependency.
+
+```sh
+dotnet add package CredOS
+```
 
 ```csharp
 using CredOS;
@@ -96,7 +100,7 @@ docker run --rm credos-linux-tests
 
 CI calculates a version using GitVersion 6.6.0 and `GitVersion.yml`, then runs
 contract and native lifecycle tests on Windows, macOS, and Linux on all three
-frameworks. It builds and validates one versioned `CredOS.Core` package with symbols.
+frameworks. It builds and validates one versioned `CredOS` package with symbols.
 Successful pushes to `main` publish those validated artifacts to NuGet. Versions
 whose patch number is zero also receive a `v<version>` tag and GitHub release.
 Pull requests and manual workflow runs validate packages without publishing.

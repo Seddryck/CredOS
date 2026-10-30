@@ -1,5 +1,28 @@
 # API validation — 2026-10-30
 
+## NuGet package rename validation
+
+The explicit package ID is now `CredOS`; the assembly remains `CredOS.Core`.
+`dotnet pack` built all three frameworks and produced matching
+`CredOS.0.1.0-beta.native-credentials.1.nupkg` and `.snupkg` files. The validator
+confirmed `CredOS.nuspec`, package ID/version/commit, documentation, license,
+and the `CredOS.Core` DLL/XML/PDB entries for .NET 8/9/10.
+
+`Test-ReleasePipeline.ps1` passed **14 checks on Windows**, including rejection
+of a nuspec that still uses the old package ID. `actionlint` and whitespace checks
+passed. Commands:
+
+```powershell
+$version = dotnet tool run dotnet-gitversion -- /nofetch /showvariable SemVer
+dotnet pack src/CredOS.Core/CredOS.Core.csproj -c Release --include-symbols --output .artifacts/package-rename -p:Version=$version -p:ContinuousIntegrationBuild=true
+./.github/scripts/Test-ReleasePipeline.ps1 -Version $version -Commit (git rev-parse HEAD) -NuGetDirectory .artifacts/package-rename
+actionlint .github/workflows/ci.yml
+git diff --check
+```
+
+Runtime/native tests were not rerun locally for the package-ID-only change.
+Their prior results are recorded below. No package was published during validation.
+
 ## Versioning and release validation
 
 The release changes were validated separately from the native API changes:
@@ -75,8 +98,8 @@ docker run --rm credos-linux-tests
 docker run --rm credos-linux-tests dotnet test src/CredOS.Core.Testing -c Release --no-build --no-restore --filter "TestCategory!=Native&TestCategory!=IsolatedLinux"
 ```
 
-The NuGet archive was inspected with `System.IO.Compression.ZipFile`: exactly
-one `CredOS.Core` package, DLL and XML documentation for every framework,
+The initial NuGet archive (before the package rename) was inspected with
+`System.IO.Compression.ZipFile`: exactly one `CredOS.Core` package, DLL and XML documentation for every framework,
 README, `docs/api.md`, and Apache-2.0 license metadata.
 `actionlint` and `git diff --check` passed.
 

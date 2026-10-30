@@ -13,12 +13,13 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$packageId = 'CredOS.Core'
+$packageId = 'CredOS'
+$assemblyName = 'CredOS.Core'
 $frameworks = @('net8.0', 'net9.0', 'net10.0')
 $packages = @(Get-ChildItem -LiteralPath $NuGetDirectory -Filter '*.nupkg' -File)
 $symbols = @(Get-ChildItem -LiteralPath $NuGetDirectory -Filter '*.snupkg' -File)
 if ($packages.Count -ne 1 -or $symbols.Count -ne 1) {
-    throw 'Expected exactly one CredOS.Core package and one symbol package.'
+    throw 'Expected exactly one CredOS package and one symbol package.'
 }
 if ($packages[0].Name -cne "$packageId.$Version.nupkg" -or $symbols[0].Name -cne "$packageId.$Version.snupkg") {
     throw 'Package filenames do not match the expected identity and version.'
@@ -47,7 +48,7 @@ foreach ($package in @($packages[0], $symbols[0])) {
             }
             foreach ($framework in $frameworks) {
                 foreach ($extension in @('dll', 'xml')) {
-                    if ($entries -cnotcontains "lib/$framework/$packageId.$extension") {
+                    if ($entries -cnotcontains "lib/$framework/$assemblyName.$extension") {
                         throw "Package is missing $framework $extension."
                     }
                 }
@@ -55,7 +56,7 @@ foreach ($package in @($packages[0], $symbols[0])) {
         }
         else {
             foreach ($framework in $frameworks) {
-                if ($entries -cnotcontains "lib/$framework/$packageId.pdb") {
+                if ($entries -cnotcontains "lib/$framework/$assemblyName.pdb") {
                     throw "Symbol package is missing $framework PDB."
                 }
             }
@@ -63,4 +64,4 @@ foreach ($package in @($packages[0], $symbols[0])) {
     }
     finally { $archive.Dispose() }
 }
-Write-Host "Validated CredOS.Core $Version and symbols for commit $Commit on all three frameworks."
+Write-Host "Validated CredOS $Version and symbols for commit $Commit on all three frameworks."

@@ -1,6 +1,7 @@
 # CredOS API contract
 
-Package: `CredOS.Core`. Namespace: `CredOS`. Frameworks: `net8.0`, `net9.0`, `net10.0`.
+Package: `CredOS`. Namespace: `CredOS`. Assembly: `CredOS.Core`.
+Frameworks: `net8.0`, `net9.0`, `net10.0`.
 
 ```csharp
 public interface ICredentialStore

@@ -43,36 +43,41 @@ Expect-Failure { & $validator -Version '999.0.0' -Commit $Commit -NuGetDirectory
 
 $noSymbols = Copy-Packages 'missing-symbols'
 # Delete only the fixture-owned copy, never the input package.
-Remove-Item -LiteralPath (Join-Path $noSymbols "CredOS.Core.$Version.snupkg")
+Remove-Item -LiteralPath (Join-Path $noSymbols "CredOS.$Version.snupkg")
 Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $noSymbols } 'Validator accepted missing symbols.'
 
 $noAssembly = Copy-Packages 'missing-framework'
-Remove-ArchiveEntry (Join-Path $noAssembly "CredOS.Core.$Version.nupkg") 'lib/net9.0/CredOS.Core.dll'
+Remove-ArchiveEntry (Join-Path $noAssembly "CredOS.$Version.nupkg") 'lib/net9.0/CredOS.Core.dll'
 Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $noAssembly } 'Validator accepted a missing framework assembly.'
 
 $noPdb = Copy-Packages 'missing-pdb'
-Remove-ArchiveEntry (Join-Path $noPdb "CredOS.Core.$Version.snupkg") 'lib/net8.0/CredOS.Core.pdb'
+Remove-ArchiveEntry (Join-Path $noPdb "CredOS.$Version.snupkg") 'lib/net8.0/CredOS.Core.pdb'
 Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $noPdb } 'Validator accepted a missing framework PDB.'
 
 $noReadme = Copy-Packages 'missing-readme'
-Remove-ArchiveEntry (Join-Path $noReadme "CredOS.Core.$Version.nupkg") 'README.md'
+Remove-ArchiveEntry (Join-Path $noReadme "CredOS.$Version.nupkg") 'README.md'
 Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $noReadme } 'Validator accepted missing README documentation.'
 
-$wrongMetadata = Copy-Packages 'wrong-metadata'
-$archive = [System.IO.Compression.ZipFile]::Open((Join-Path $wrongMetadata "CredOS.Core.$Version.nupkg"), [System.IO.Compression.ZipArchiveMode]::Update)
-try {
-    $entry = $archive.GetEntry('CredOS.Core.nuspec')
-    $reader = [System.IO.StreamReader]::new($entry.Open())
-    try { [xml] $metadata = $reader.ReadToEnd() }
-    finally { $reader.Dispose() }
-    $metadata.package.metadata.version = '999.0.0'
-    $entry.Delete()
-    $writer = [System.IO.StreamWriter]::new($archive.CreateEntry('CredOS.Core.nuspec').Open())
-    try { $writer.Write($metadata.OuterXml) }
-    finally { $writer.Dispose() }
+foreach ($mismatch in @(
+    @{ Property = 'version'; Value = '999.0.0' },
+    @{ Property = 'id'; Value = 'CredOS.Core' }
+)) {
+    $wrongMetadata = Copy-Packages "wrong-$($mismatch.Property)"
+    $archive = [System.IO.Compression.ZipFile]::Open((Join-Path $wrongMetadata "CredOS.$Version.nupkg"), [System.IO.Compression.ZipArchiveMode]::Update)
+    try {
+        $entry = $archive.GetEntry('CredOS.nuspec')
+        $reader = [System.IO.StreamReader]::new($entry.Open())
+        try { [xml] $metadata = $reader.ReadToEnd() }
+        finally { $reader.Dispose() }
+        $metadata.package.metadata.($mismatch.Property) = $mismatch.Value
+        $entry.Delete()
+        $writer = [System.IO.StreamWriter]::new($archive.CreateEntry('CredOS.nuspec').Open())
+        try { $writer.Write($metadata.OuterXml) }
+        finally { $writer.Dispose() }
+    }
+    finally { $archive.Dispose() }
+    Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $wrongMetadata } "Validator accepted mismatched nuspec $($mismatch.Property)."
 }
-finally { $archive.Dispose() }
-Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $wrongMetadata } 'Validator accepted mismatched nuspec metadata.'
 
 # A private bare remote exercises publication boundaries without contacting GitHub.
 $remote = Join-Path $fixture 'remote.git'

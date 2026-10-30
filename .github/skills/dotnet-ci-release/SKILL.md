@@ -11,7 +11,8 @@ Adapted from Packata's delivery skill. Inspect `Directory.Build.props`,
 
 The initial deliverable is one portable managed library, `CredOS.Core`, targeting
 `net8.0`, `net9.0`, and `net10.0`. Compile all three and pack them into one NuGet
-package with a matching symbol package. NuGet publication and patch-zero GitHub
+package with ID `CredOS` and a matching symbol package. The assembly remains
+`CredOS.Core`. NuGet publication and patch-zero GitHub
 releases are configured in `ci.yml`; see `docs/releases.md`. No executable, RID
 distribution, generated icon, or installer is established. Do not introduce Packata's
 CLI, VS Code, schema, website, or release matrices without corresponding CredOS
