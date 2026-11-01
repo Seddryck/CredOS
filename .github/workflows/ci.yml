@@ -46,6 +46,29 @@ jobs:
           if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
             throw "GitVersion produced invalid SemVer '$env:RELEASE_VERSION'."
           }
+  package-branding:
+    name: Branding · reconstruct, validate, and package
+    needs: calculate-version
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Install pinned portable ImageMagick
+        shell: pwsh
+        run: ./.github/scripts/Install-ImageMagick.ps1
+      - name: Generate branding and verify tracked previews
+        shell: pwsh
+        run: ./Build-Logo.ps1 -Version '${{ needs.calculate-version.outputs.semver }}' -CheckTrackedAssets
+      - name: Test branding reconstruction and artifact guards
+        shell: pwsh
+        run: ./.github/scripts/Test-BrandingPipeline.ps1 -Version '${{ needs.calculate-version.outputs.semver }}' -BrandingDirectory .artifacts/branding
+      - name: Upload validated branding
+        uses: actions/upload-artifact@v7
+        with:
+          name: branding-${{ needs.calculate-version.outputs.semver }}
+          path: .artifacts/branding/*
+          if-no-files-found: error
+
   test:
     name: Test native stores (${{ matrix.os }})
     needs: calculate-version
@@ -87,7 +110,7 @@ jobs:
           bash build/test-linux.sh
   build-package:
     name: Build all frameworks and validate package
-    needs: [calculate-version, test]
+    needs: [calculate-version, test, package-branding]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -96,6 +119,11 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - name: Download validated branding
+        uses: actions/download-artifact@v7
+        with:
+          name: branding-${{ needs.calculate-version.outputs.semver }}
+          path: .artifacts/branding
       - name: Restore
         run: dotnet restore CredOS.slnx
       - name: Pack
@@ -107,6 +135,7 @@ jobs:
           -Version '${{ needs.calculate-version.outputs.semver }}'
           -Commit '${{ github.sha }}'
           -NuGetDirectory .artifacts/nuget
+          -BrandingDirectory .artifacts/branding
       - name: Upload validated packages
         uses: actions/upload-artifact@v7
         with:
@@ -178,6 +207,11 @@ jobs:
         with:
           name: nuget-${{ needs.calculate-version.outputs.semver }}
           path: .artifacts/nuget
+      - name: Download validated branding
+        uses: actions/download-artifact@v7
+        with:
+          name: branding-${{ needs.calculate-version.outputs.semver }}
+          path: .artifacts/branding
       - name: Revalidate packages before publishing
         shell: pwsh
         run: >-
@@ -185,6 +219,7 @@ jobs:
           -Version '${{ needs.calculate-version.outputs.semver }}'
           -Commit '${{ github.sha }}'
           -NuGetDirectory .artifacts/nuget
+          -BrandingDirectory .artifacts/branding
       - name: Exchange GitHub identity for a NuGet API key
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -201,7 +236,7 @@ jobs:
   publish-github-release:
     name: Publishing · create GitHub release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.calculate-version.outputs.patch == '0'
-    needs: [calculate-version, build-package, verify-release-identity, publish-nuget]
+    needs: [calculate-version, build-package, package-branding, verify-release-identity, publish-nuget]
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -214,6 +249,11 @@ jobs:
         with:
           name: nuget-${{ needs.calculate-version.outputs.semver }}
           path: .artifacts/nuget
+      - name: Download validated branding
+        uses: actions/download-artifact@v7
+        with:
+          name: branding-${{ needs.calculate-version.outputs.semver }}
+          path: .artifacts/branding
       - name: Revalidate release assets
         shell: pwsh
         run: >-
@@ -221,6 +261,7 @@ jobs:
           -Version '${{ needs.calculate-version.outputs.semver }}'
           -Commit '${{ github.sha }}'
           -NuGetDirectory .artifacts/nuget
+          -BrandingDirectory .artifacts/branding
       - name: Create or update GitHub release
         shell: pwsh
         env:
@@ -229,6 +270,7 @@ jobs:
         run: |
           $tag = "v$env:RELEASE_VERSION"
           $assets = @(Get-ChildItem .artifacts/nuget -File | Select-Object -ExpandProperty FullName)
+          $assets += (Resolve-Path ".artifacts/branding/credos-branding-$env:RELEASE_VERSION.zip").Path
           if (gh release view $tag 2>$null) {
             gh release upload $tag @assets --clobber
           }

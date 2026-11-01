@@ -4,12 +4,16 @@ CredOS follows Packata's GitVersion configuration and release cadence. The one
 deliverable is the `CredOS` NuGet package, containing `net8.0`, `net9.0`, and `net10.0` assemblies
 and XML API documentation. Each release also includes a matching `.snupkg` with
 portable symbols for all three frameworks. There are no executable distributions
-or generated build prerequisites.
+or installers. Packing requires generated branding assets.
 The project and assembly remain named `CredOS.Core`; the explicit package ID is `CredOS`.
 Artifacts are named `CredOS.<version>.nupkg` and `CredOS.<version>.snupkg`.
 The package embeds the full README logo and a 128×128 symbol-only PNG icon.
 `PackageIcon` references `assets/credos-icon.png`; CI checks its presence, dimensions,
 size, and metadata reference.
+Branding sources and their color mapping live under `assets/logo/`.
+`Build-Logo.ps1` uses pinned ImageMagick 7.1.2-29 Q16-HDRI to reconstruct the approved
+transparent logo exactly, then generate symbol-only icons and a branding ZIP.
+See [the source layers and build instructions](../assets/logo/LAYER-COLORS.md).
 
 ## Version calculation
 
@@ -34,20 +38,30 @@ A local build without a version override remains `0.0.0`.
 1. **Calculate version:** fetch full history and calculate one validated version.
 2. **Build and test:** use that version on Windows, macOS, and Linux for .NET 8/9/10.
    Linux native tests use private Secret Service sessions; macOS uses a temporary keychain.
-3. **Package and validate:** after every OS succeeds, build the portable library
+   In parallel, a Windows branding job installs a checksum-verified portable
+   ImageMagick toolchain and generates the branding assets once. It checks exact
+   RGBA reconstruction, tracked README/icon freshness, deterministic repeat builds,
+   grayscale masks, and missing/modified source and artifact rejection. It uploads
+   the validated images, hash manifest, and `credos-branding-<version>.zip`.
+3. **Package and validate:** after every OS and branding validation succeeds, download
+   those branding assets and build the portable library
    into one NuGet package and matching symbol package. Validate filenames, nuspec
    identity/version, repository commit, license, documentation, assemblies, and symbols.
-   Negative package-validation cases and isolated tag-reservation tests also run here.
+   Package logo and icon bytes must match the validated branding artifact. The
+   source masks and reference image are not packed. Negative package-validation
+   cases and isolated tag-reservation tests also run here.
 4. **Verify release identity:** only for pushes to `main`, refresh tags and recalculate
    the version for the tested commit. Fail if the checkout or version differs.
    For patch-zero versions, reserve `v<version>`; reuse an existing tag only if it
    identifies the tested commit, including when another process creates it concurrently.
 5. **Publish NuGet:** on successful pushes to `main`, download and revalidate the
-   exact package artifacts. Exchange GitHub OIDC identity through `NuGet/login`,
+   exact package and branding artifacts, including hashes and branding ZIP contents.
+   Exchange GitHub OIDC identity through `NuGet/login`,
    then push the package and symbols. Packages are not rebuilt during publication.
 6. **Publish GitHub release:** for patch-zero versions only, after NuGet publication
    succeeds, create or update the release using `gh`, generated release notes, and
-   the validated `.nupkg`/`.snupkg` assets. The release uses the verified existing tag.
+   the validated `.nupkg`/`.snupkg` assets and branding ZIP. The release uses the
+   verified existing tag. No images or packages are rebuilt during publication.
 
 For example, `0.1.0` gets a `v0.1.0` tag, NuGet publication, and a GitHub release.
 `0.1.1` is published to NuGet without a GitHub release page or new tag, matching
@@ -75,8 +89,10 @@ adding the workflow does not create a NuGet trusted publishing policy.
 ```powershell
 dotnet tool restore
 $version = dotnet tool run dotnet-gitversion -- /nofetch /showvariable SemVer
+pwsh -File ./Build-Logo.ps1 -Version $version -CheckTrackedAssets
+./.github/scripts/Test-BrandingPipeline.ps1 -Version $version -BrandingDirectory .artifacts/branding
 dotnet pack src/CredOS.Core/CredOS.Core.csproj -c Release --include-symbols -p:Version=$version --output .artifacts/versioned
-./.github/scripts/Test-ReleasePipeline.ps1 -Version $version -Commit (git rev-parse HEAD) -NuGetDirectory .artifacts/versioned
+./.github/scripts/Test-ReleasePipeline.ps1 -Version $version -Commit (git rev-parse HEAD) -NuGetDirectory .artifacts/versioned -BrandingDirectory .artifacts/branding
 actionlint .github/workflows/ci.yml
 ```
 

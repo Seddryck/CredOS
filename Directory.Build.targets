@@ -1,4 +1,8 @@
 <Project>
+  <Target Name="RequireGeneratedBranding" BeforeTargets="_GetPackageFiles" Condition="'$(IsPackable)' == 'true'">
+    <Error Condition="!Exists('$(BrandingDirectory)/credos-logo.png') Or !Exists('$(BrandingDirectory)/credos-icon.png')"
+           Text="Generated branding is missing. Run pwsh -File ./Build-Logo.ps1 before dotnet pack, or set BrandingDirectory to the validated CI artifact directory." />
+  </Target>
   <Target Name="AddInternalsVisibleTo" BeforeTargets="BeforeCompile">
     <!-- Add default suffix if there is no InternalsVisibleTo or InternalsVisibleToSuffix defined -->
     <ItemGroup Condition="@(InternalsVisibleToSuffix->Count()) == 0 AND @(InternalsVisibleTo->Count()) == 0">
