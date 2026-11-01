@@ -38,6 +38,8 @@ A local build without a version override remains `0.0.0`.
 1. **Calculate version:** fetch full history and calculate one validated version.
 2. **Build and test:** use that version on Windows, macOS, and Linux for .NET 8/9/10.
    Linux native tests use private Secret Service sessions; macOS uses a temporary keychain.
+   Windows native framework hosts run sequentially against the shared Credential
+   Manager; the concurrency test remains enabled within each framework.
    In parallel, a Windows branding job installs a checksum-verified portable
    ImageMagick toolchain and generates the branding assets once. It checks exact
    RGBA reconstruction, tracked README/icon freshness, deterministic repeat builds,

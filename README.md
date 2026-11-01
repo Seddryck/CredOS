@@ -88,8 +88,11 @@ On Windows, run against the current user's store:
 
 ```powershell
 $env:CREDOS_TEST_NATIVE = '1'
-dotnet test src/CredOS.Core.Testing -c Release --no-build --no-restore --filter "TestCategory=Native"
+dotnet test src/CredOS.Core.Testing -c Release --no-build --no-restore --filter "TestCategory=Native" -p:TestTfmsInParallel=false
 ```
+
+Windows native tests run framework hosts sequentially because they share the
+current user's Credential Manager. Each framework still runs the concurrent-create test.
 
 On macOS, after the build, run `bash build/test-macos.sh`; it creates a temporary
 keychain and restores the prior default and search list. On Linux, install

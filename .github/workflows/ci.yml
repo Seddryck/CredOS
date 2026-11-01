@@ -97,7 +97,9 @@ jobs:
         if: runner.os == 'Windows'
         env:
           CREDOS_TEST_NATIVE: '1'
-        run: dotnet test src/CredOS.Core.Testing --configuration Release --no-build --no-restore --filter "TestCategory=Native"
+        # All framework test hosts share the runner's Windows credential store.
+        # Isolate their lifecycles; the native concurrency test still runs within each host.
+        run: dotnet test src/CredOS.Core.Testing --configuration Release --no-build --no-restore --filter "TestCategory=Native" -p:TestTfmsInParallel=false
       - name: Run native macOS tests in a temporary keychain
         if: runner.os == 'macOS'
         shell: bash
