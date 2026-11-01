@@ -15,7 +15,13 @@ package with ID `CredOS` and a matching symbol package. The assembly remains
 `CredOS.Core`. NuGet publication and patch-zero GitHub
 releases are configured in `ci.yml`; see `docs/releases.md`. No executable, RID
 distribution or installer is established. The package embeds its logo and icon
-from `assets/`; preserve their metadata and package validation. Do not introduce Packata's
+from validated generated files in `.artifacts/branding/`; preserve their package
+paths under `assets/`, metadata, and package validation. Source masks and color
+mapping live in `assets/logo/`. Run `Build-Logo.ps1` before packing, with pinned
+ImageMagick 7.1.2-29 Q16-HDRI. Branding is generated once in CI and consumed by
+packaging and publication without rebuilding; patch-zero GitHub releases also
+include the versioned branding ZIP. Preserve the zero-difference reference and
+tracked-preview freshness checks. Do not introduce Packata's
 CLI, VS Code, schema, website, or release matrices without corresponding CredOS
 deliverables.
 

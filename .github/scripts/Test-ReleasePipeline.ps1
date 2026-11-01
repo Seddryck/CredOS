@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)] [string] $Version,
     [Parameter(Mandatory)] [string] $Commit,
-    [Parameter(Mandatory)] [string] $NuGetDirectory
+    [Parameter(Mandatory)] [string] $NuGetDirectory,
+    [string] $BrandingDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,6 +38,20 @@ function Remove-ArchiveEntry([string] $Path, [string] $Entry) {
 
 & $validator -Version $Version -Commit $Commit -NuGetDirectory $packageDirectory
 $script:checks++
+if ($BrandingDirectory) {
+    & $validator -Version $Version -Commit $Commit -NuGetDirectory $packageDirectory -BrandingDirectory $BrandingDirectory
+    $script:checks++
+    $wrongBranding = Copy-Packages 'wrong-branding'
+    $archive = [System.IO.Compression.ZipFile]::Open((Join-Path $wrongBranding "CredOS.$Version.nupkg"), [System.IO.Compression.ZipArchiveMode]::Update)
+    try {
+        $archive.GetEntry('assets/credos-logo.png').Delete()
+        $stream = $archive.CreateEntry('assets/credos-logo.png').Open()
+        try { $stream.WriteByte(0) }
+        finally { $stream.Dispose() }
+    }
+    finally { $archive.Dispose() }
+    Expect-Failure { & $validator -Version $Version -Commit $Commit -NuGetDirectory $wrongBranding -BrandingDirectory $BrandingDirectory } 'Validator accepted branding that differs from the validated artifact.'
+}
 $wrongCommit = if ($Commit -eq ('a' * 40)) { 'b' * 40 } else { 'a' * 40 }
 Expect-Failure { & $validator -Version $Version -Commit $wrongCommit -NuGetDirectory $packageDirectory } 'Validator accepted a different source commit.'
 Expect-Failure { & $validator -Version '999.0.0' -Commit $Commit -NuGetDirectory $packageDirectory } 'Validator accepted a different version.'

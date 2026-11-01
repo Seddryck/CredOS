@@ -25,6 +25,7 @@
     <RequireLicenseAcceptance>false</RequireLicenseAcceptance>
     <SymbolPackageFormat Condition="'$(DebugType)' != 'embedded'">snupkg</SymbolPackageFormat>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <BrandingDirectory Condition="'$(BrandingDirectory)' == ''">$(MSBuildThisFileDirectory).artifacts/branding</BrandingDirectory>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +33,7 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
     <None Include="$(MSBuildThisFileDirectory)docs/api.md" Pack="true" PackagePath="docs/" />
     <None Include="$(MSBuildThisFileDirectory)docs/releases.md" Pack="true" PackagePath="docs/" />
-    <None Include="$(MSBuildThisFileDirectory)assets/*.png" Pack="true" PackagePath="assets/" />
+    <None Include="$(BrandingDirectory)/credos-logo.png" Pack="true" PackagePath="assets/credos-logo.png" />
+    <None Include="$(BrandingDirectory)/credos-icon.png" Pack="true" PackagePath="assets/credos-icon.png" />
   </ItemGroup>
 </Project>

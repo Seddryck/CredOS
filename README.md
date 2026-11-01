@@ -72,11 +72,14 @@ boundary against other applications running as the same OS user.
 ## Development and tests
 
 Install the .NET 10 SDK or newer and .NET 8/9/10 runtimes to run every target.
+Packing also requires PowerShell 7 and ImageMagick 7.1.2-29 Q16-HDRI;
+see the [branding source and toolchain instructions](assets/logo/LAYER-COLORS.md).
 
 ```powershell
 dotnet restore CredOS.slnx
 dotnet test src/CredOS.Core.Testing -c Release --no-restore --filter "TestCategory!=Native&TestCategory!=IsolatedLinux"
 dotnet build CredOS.slnx -c Release --no-restore
+pwsh -File ./Build-Logo.ps1 -CheckTrackedAssets
 dotnet pack CredOS.slnx -c Release --no-build --output .artifacts/nuget
 ```
 
@@ -85,8 +88,11 @@ On Windows, run against the current user's store:
 
 ```powershell
 $env:CREDOS_TEST_NATIVE = '1'
-dotnet test src/CredOS.Core.Testing -c Release --no-build --no-restore --filter "TestCategory=Native"
+dotnet test src/CredOS.Core.Testing -c Release --no-build --no-restore --filter "TestCategory=Native" -p:TestTfmsInParallel=false
 ```
+
+Windows native tests run framework hosts sequentially because they share the
+current user's Credential Manager. Each framework still runs the concurrent-create test.
 
 On macOS, after the build, run `bash build/test-macos.sh`; it creates a temporary
 keychain and restores the prior default and search list. On Linux, install
@@ -104,9 +110,13 @@ docker run --rm credos-linux-tests
 
 CI calculates a version using GitVersion 6.6.0 and `GitVersion.yml`, then runs
 contract and native lifecycle tests on Windows, macOS, and Linux on all three
-frameworks. It builds and validates one versioned `CredOS` package with symbols.
+frameworks. A parallel branding job reconstructs the exact transparent logo from
+grayscale layers, validates tracked previews, and produces icons and a versioned
+branding ZIP. Packaging consumes those validated images and builds one versioned
+`CredOS` package with symbols.
 Successful pushes to `main` publish those validated artifacts to NuGet. Versions
-whose patch number is zero also receive a `v<version>` tag and GitHub release.
+whose patch number is zero also receive a `v<version>` tag and GitHub release,
+including the branding ZIP.
 Pull requests and manual workflow runs validate packages without publishing.
 See [the release process and required setup](docs/releases.md).
 
@@ -116,6 +126,7 @@ To build the same version as GitVersion calculates for the current branch:
 ```powershell
 dotnet tool restore
 $version = dotnet tool run dotnet-gitversion -- /nofetch /showvariable SemVer
+pwsh -File ./Build-Logo.ps1 -Version $version -CheckTrackedAssets
 dotnet pack src/CredOS.Core/CredOS.Core.csproj -c Release --include-symbols -p:Version=$version --output .artifacts/versioned
 ```
 

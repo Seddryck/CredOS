@@ -9,13 +9,18 @@ param(
     [string] $Commit,
 
     [Parameter(Mandatory)]
-    [string] $NuGetDirectory
+    [string] $NuGetDirectory,
+
+    [string] $BrandingDirectory
 )
 
 $ErrorActionPreference = 'Stop'
 $packageId = 'CredOS'
 $assemblyName = 'CredOS.Core'
 $frameworks = @('net8.0', 'net9.0', 'net10.0')
+if ($BrandingDirectory) {
+    & (Join-Path $PSScriptRoot 'Validate-BrandingAssets.ps1') -BrandingDirectory $BrandingDirectory -Version $Version
+}
 $packages = @(Get-ChildItem -LiteralPath $NuGetDirectory -Filter '*.nupkg' -File)
 $symbols = @(Get-ChildItem -LiteralPath $NuGetDirectory -Filter '*.snupkg' -File)
 if ($packages.Count -ne 1 -or $symbols.Count -ne 1) {
@@ -47,6 +52,17 @@ foreach ($package in @($packages[0], $symbols[0])) {
                 if ($entries -cnotcontains $entry) { throw "Package is missing $entry." }
             }
             if ($identity.icon -cne 'assets/credos-icon.png') { throw 'Package metadata does not reference the symbol-only icon.' }
+            if ($BrandingDirectory) {
+                foreach ($name in @('credos-logo.png', 'credos-icon.png')) {
+                    $stream = $archive.GetEntry("assets/$name").Open()
+                    $hasher = [System.Security.Cryptography.SHA256]::Create()
+                    try { $hash = [Convert]::ToHexString($hasher.ComputeHash($stream)) }
+                    finally { $stream.Dispose(); $hasher.Dispose() }
+                    if ($hash -cne (Get-FileHash -LiteralPath (Join-Path $BrandingDirectory $name) -Algorithm SHA256).Hash) {
+                        throw "Package assets/$name differs from validated branding."
+                    }
+                }
+            }
             $icon = $archive.GetEntry('assets/credos-icon.png')
             if ($icon.Length -gt 1MB) { throw 'Package icon exceeds the NuGet size limit.' }
             $stream = $icon.Open()
