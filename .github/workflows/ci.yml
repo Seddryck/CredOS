@@ -122,7 +122,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Download validated branding
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: branding-${{ needs.calculate-version.outputs.semver }}
           path: .artifacts/branding
@@ -205,12 +205,12 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Download validated packages
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: nuget-${{ needs.calculate-version.outputs.semver }}
           path: .artifacts/nuget
       - name: Download validated branding
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: branding-${{ needs.calculate-version.outputs.semver }}
           path: .artifacts/branding
@@ -247,12 +247,12 @@ jobs:
       - name: Check out artifact validator
         uses: actions/checkout@v7
       - name: Download validated packages
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: nuget-${{ needs.calculate-version.outputs.semver }}
           path: .artifacts/nuget
       - name: Download validated branding
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: branding-${{ needs.calculate-version.outputs.semver }}
           path: .artifacts/branding
