@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+        uses: gittools/actions/gitversion/setup@0fdbe2ead9fe738c667f978d1baf448b1b6fb853 # v4.7.1
         with:
           versionSpec: 6.6.0
       - name: Calculate version
@@ -160,7 +160,7 @@ jobs:
       - name: Refresh remote tags
         run: git fetch origin --force --tags
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+        uses: gittools/actions/gitversion/setup@0fdbe2ead9fe738c667f978d1baf448b1b6fb853 # v4.7.1
         with:
           versionSpec: 6.6.0
       - name: Recalculate version after artifact validation
