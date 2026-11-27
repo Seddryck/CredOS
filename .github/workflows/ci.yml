@@ -37,7 +37,7 @@ jobs:
           versionSpec: 6.6.0
       - name: Calculate version
         id: gitversion
-        uses: gittools/actions/gitversion/execute@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+        uses: gittools/actions/gitversion/execute@389fe43e6b0189b98c40c43553070ac029304635 # v5.0.0
       - name: Validate version
         shell: pwsh
         env:
@@ -165,7 +165,7 @@ jobs:
           versionSpec: 6.6.0
       - name: Recalculate version after artifact validation
         id: release-version
-        uses: gittools/actions/gitversion/execute@7417b1089e2c7de93510f1901d656ddf60bb024f # v4.7.0
+        uses: gittools/actions/gitversion/execute@389fe43e6b0189b98c40c43553070ac029304635 # v5.0.0
       - name: Verify tested commit and release version
         shell: pwsh
         env:
